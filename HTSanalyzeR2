@@ -1,0 +1,43 @@
+#load libraries
+library(HTSanalyzeR2)
+library(org.Mm.eg.db)
+library(KEGGREST)
+library(igraph)
+
+## prepare input for analysis
+phenotype <- as.vector(top.table$logFC)
+names(phenotype) <- rownames(top.table)
+
+## specify the gene sets type you want to analyze
+PW_KEGG <- KeggGeneSets(species="Mm")
+ListGSC <- list(PW_KEGG=PW_KEGG)
+
+## iniate a *GSCA* object
+gsca <- GSCA(listOfGeneSetCollections=ListGSC, 
+             geneList=phenotype)
+
+## preprocess
+gsca1 <- preprocess(gsca, species="Mm", initialIDs="SYMBOL",
+                    keepMultipleMappings=TRUE, duplicateRemoverMethod="max",
+                    orderAbsValue=FALSE)
+
+## analysis
+if (requireNamespace("doParallel", quietly=TRUE)) {
+  doParallel::registerDoParallel(cores=4)
+}  
+## support parallel calculation using multiple cores
+gsca2 <- analyze(gsca1, 
+                 para=list(pValueCutoff=0.05, pAdjustMethod="BH",
+                           nPermutations=100, minGeneSetSize=180,
+                           exponent=1), 
+                 doGSOA = FALSE)
+
+## append gene sets terms
+gsca3 <- appendGSTerms(gsca2, 
+                       keggGSCs=c("PW_KEGG"),
+                       species = "Mm")
+
+## draw GSEA plot for a specific gene set
+topGS <- getTopGeneSets(gsca3, resultName="GSEA.results",
+                        gscs=c("PW_KEGG"), allSig=TRUE)
+viewGSEA(gsca3, gscName="PW_KEGG", gsName=topGS[["PW_KEGG"]][2])
