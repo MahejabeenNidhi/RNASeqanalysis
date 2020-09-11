@@ -1,0 +1,73 @@
+#load gene annotation file
+
+geneAnnotation <- read.delim("~/Documents/DrKwan/Workshop/Galaxy39-[Mouse_Gene_Annotation].gff", header = F, comment.char = "#")
+
+#name columns of the annotation file
+
+annotationColumns <- c("Chr", "Source", "Feature", "Start", "End", "Score", "Strand", "Frame", "Group")
+colnames(geneAnnotation) <- annotationColumns
+
+#filter for Feature "gene"
+
+filteredAnnotation <- geneAnnotation[geneAnnotation$Feature == "gene",]
+
+#drop columns Seqname Source Score Frame
+
+drop <- c("Source", "Score", "Frame")
+annotationFile <- filteredAnnotation[,!(names(filteredAnnotation)%in%drop)]
+
+#calculate gene length
+
+annotationFile <- within(annotationFile, GeneLength <- End-Start)
+
+#extract ENCODE gene ID
+
+library(stringr)
+library(tidyverse)
+
+tbl <- tibble(temp = annotationFile$Group)
+tbl2 <- tbl %>%
+  mutate(temp2 = str_sub(temp, 8,-1))
+tbl2
+
+tbl3 <- tbl2 %>%
+  mutate(temp3 = str_sub(temp2, 1, 18))
+tbl3
+
+ENCODEID <- as.vector(tbl3$temp3)
+ENCODEID
+
+annotationFile <- cbind(annotationFile, ENCODEID)
+
+#drop Group Feature columns 
+
+drop2 <- c("Feature", "Group")
+annotationFile <- annotationFile[,!(names(annotationFile)%in%drop2)]
+
+#use AnnotationDbi to convert ENCODE gene ID to Gene Symbol
+
+#load GeneCount files
+
+MP2 <- read.delim("~/Documents/DrKwan/Workshop/Galaxy43-[GeneCount_13-MP2].tabular", header=FALSE)
+MP3 <- read.delim("~/Documents/DrKwan/Workshop/Galaxy47-[GeneCount_14-MP3].tabular", header=FALSE)
+M3 <- read.delim("~/Documents/DrKwan/Workshop/Galaxy77-[GeneCount_4-M3].tabular", header=FALSE)
+M4 <- read.delim("~/Documents/DrKwan/Workshop/Galaxy55-[GeneCount_5-M4].tabular", header=FALSE)
+M5 <- read.delim("~/Documents/DrKwan/Workshop/Galaxy65-[GeneCount_6-M5].tabular", header=FALSE)
+MP1LY49N <- read.delim("~/Documents/DrKwan/Workshop/Galaxy69-[GeneCount_MP-1LY49N].tabular", header=FALSE)
+MP1LY49P <- read.delim("~/Documents/DrKwan/Workshop/Galaxy95-[GeneCount_MP-1LY49P].tabular", header=FALSE)
+MP2LY49N <- read.delim("~/Documents/DrKwan/Workshop/Galaxy99-[GeneCount_MP-2LY49N].tabular", header=FALSE)
+MP2LY49P <- read.delim("~/Documents/DrKwan/Workshop/Galaxy103-[GeneCount_MP-2LY49P].tabular", header=FALSE)
+MP3LY49N <- read.delim("~/Documents/DrKwan/Workshop/Galaxy107-[GeneCount_MP-3LY49N].tabular", header=FALSE)
+MP3LY49P <- read.delim("~/Documents/DrKwan/Workshop/Galaxy111-[GeneCount_MP-3LY49P].tabular", header=FALSE)
+
+#keep only the first two columns and remove irrelevant rows
+
+#trim off the version number of the ENCODE gene ID in the first column 
+
+#convert ENCODE gene ID to Gene Symbol
+
+#join all the datasets
+
+#order the columns of the joined dataset as GeneSymbol Chr Start End Strand GeneLength 
+
+
