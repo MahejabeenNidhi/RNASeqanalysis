@@ -25,10 +25,8 @@ library(kableExtra)
 library(readxl)
 library(ComplexHeatmap)
 
-#create count table
-hkucounts <- read_excel("~/Documents/DrKwan/HKUlabdata/hkucounts.xlsx")
-genedetails <- read_excel("~/Documents/DrKwan/HKUlabdata/geneexpressionwithlengthstrandchr.xlsx")
-countdata <- merge(genedetails,hkucounts,by="Symbol")
+#upload count matrix
+count <- read.csv("~/Documents/DrKwan/Workshop/DESeq.csv")
 
 #create data frame 
 countData <- as.data.frame(countdata)
@@ -184,21 +182,6 @@ x[x< cutoff] <- cutoff
 groups = detectGroups(colnames(x) )
 groups.colors = rainbow(length(unique(groups) ) )
 
-lmat = rbind(c(5,4),c(0,1),c(3,2))
-lwid = c(1.5,4)
-lhei = c(1,.2,4)
-
-
-heatmap.2(x, distfun = dist2,hclustfun=hclust2,
-          col="inferno", density.info="none", trace="none", scale="none", keysize=.5
-          ,key=T, symkey=F
-          ,ColSideColors=groups.colors[ as.factor(groups)]
-          ,margins=c(8,12)
-          ,cexRow=1
-          ,srtCol=45
-          ,cexCol=1.  # size of font for sample names
-          ,lmat = lmat, lwid = lwid, lhei = lhei
-)
 
 #pretty heat map
 pheatmap(x)
