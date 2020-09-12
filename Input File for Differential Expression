@@ -20,7 +20,7 @@ annotationFile <- filteredAnnotation[,!(names(filteredAnnotation)%in%drop)]
 
 annotationFile <- within(annotationFile, GeneLength <- End-Start)
 
-#extract ENCODE gene ID
+#extract ensembl gene ID
 
 library(stringr)
 library(tidyverse)
@@ -31,20 +31,36 @@ tbl2 <- tbl %>%
 tbl2
 
 tbl3 <- tbl2 %>%
-  mutate(temp3 = str_sub(temp2, 1, 18))
+  mutate(temp3 = str_sub(temp2, 2, 19))
 tbl3
 
-ENCODEID <- as.vector(tbl3$temp3)
-ENCODEID
+GeneID <- as.vector(tbl3$temp3)
+GeneID
 
-annotationFile <- cbind(annotationFile, ENCODEID)
+annotationFile <- cbind(annotationFile, GeneID)
 
 #drop Group Feature columns 
 
 drop2 <- c("Feature", "Group")
 annotationFile <- annotationFile[,!(names(annotationFile)%in%drop2)]
 
-#use AnnotationDbi to convert ENCODE gene ID to Gene Symbol
+#use biomaRt to convert ensembl gene ID to Gene Symbol
+
+library(biomaRt)
+ensembl <- useMart("ensembl")
+datasets <- listDatasets(ensembl)
+ensembl <- useDataset("mmusculus_gene_ensembl", mart = ensembl)
+mouse_gene_ids <- annotationFile[,6]
+foo <- getBM(attributes = c("ensembl_gene_id","external_gene_name"),
+             values = mouse_gene_ids,
+             mart = ensembl)
+colnames(foo) <- c("GeneID", "Gene_Symbol")
+
+#reorder annotationFile
+
+annotationFile <- annotationFile[,c(6, 1, 2, 3, 4, 5)]
+
+
 
 #load GeneCount files
 
@@ -60,14 +76,56 @@ MP2LY49P <- read.delim("~/Documents/DrKwan/Workshop/Galaxy103-[GeneCount_MP-2LY4
 MP3LY49N <- read.delim("~/Documents/DrKwan/Workshop/Galaxy107-[GeneCount_MP-3LY49N].tabular", header=FALSE)
 MP3LY49P <- read.delim("~/Documents/DrKwan/Workshop/Galaxy111-[GeneCount_MP-3LY49P].tabular", header=FALSE)
 
-#keep only the first two columns and remove irrelevant rows
+#define function to clean the GeneCounts
 
-#trim off the version number of the ENCODE gene ID in the first column 
+GeneCounts <- function(RawCount) {
+  Reads <- RawCount[,1:2]
+  Reads <- tail(Reads, -4)
+  Reads[,1] <- str_sub(Reads[,1], 1, 18)
+  colnames(Reads) <- c("GeneID", "Count")
+  return(Reads)
+}
 
-#convert ENCODE gene ID to Gene Symbol
+MP2 <- GeneCounts(MP2)
+MP3 <- GeneCounts(MP3)
+M3 <- GeneCounts(M3)
+M4 <- GeneCounts(M4)
+M5 <- GeneCounts(M5)
+MP1LY49N <- GeneCounts(MP1LY49N)
+MP1LY49P <- GeneCounts(MP1LY49P)
+MP2LY49N <- GeneCounts(MP2LY49N)
+MP2LY49P <- GeneCounts(MP2LY49P)
+MP3LY49N <- GeneCounts(MP3LY49N)
+MP3LY49P <- GeneCounts(MP3LY49P)
 
 #join all the datasets
 
-#order the columns of the joined dataset as GeneSymbol Chr Start End Strand GeneLength 
+library(dplyr)
+countMatrix <- inner_join(MP2, MP3, by = "GeneID") 
+countMatrix <- inner_join(countMatrix, M3, by = "GeneID") 
+countMatrix <- inner_join(countMatrix, M4, by = "GeneID")
+countMatrix <- inner_join(countMatrix, M5, by = "GeneID")
+countMatrix <- inner_join(countMatrix, MP1LY49N, by = "GeneID")
+countMatrix <- inner_join(countMatrix, MP1LY49P, by = "GeneID")
+countMatrix <- inner_join(countMatrix, MP2LY49N, by = "GeneID")
+countMatrix <- inner_join(countMatrix, MP2LY49P, by = "GeneID")
+countMatrix <- inner_join(countMatrix, MP3LY49N, by = "GeneID")
+countMatrix <- inner_join(countMatrix, MP3LY49P, by = "GeneID")
+
+colnames(countMatrix) <- c("GeneID", "MP2", "MP3", "M3", "M4", "M5", "MP1LY49N", "MP1LY49P", "MP2LY49N", "MP2LY49P", "MP3LY49N", "MP3LY49P")
+
+#join annotationFile with countmatrix
+
+annotationSymbol <- inner_join(countMatrix, annotationFile, by = "GeneID")
+
+#join annotationSymbol with foo
+
+combinedFile <- inner_join(annotationSymbol, foo, by = "GeneID")
+
+#reorder to get input file
+
+GeneIDremoved <- combinedFile[,2:18]
+InputDESeq <- GeneIDremoved[,c(17, 12:16, 2:11)]
+
 
 
