@@ -25,20 +25,20 @@ library(kableExtra)
 library(readxl)
 library(ComplexHeatmap)
 
-#upload count matrix
+#load count matrix 
+
 count <- read.csv("~/Documents/DrKwan/Workshop/DESeq.csv")
 
 #create data frame 
-countData <- as.data.frame(countdata)
-countData <- countData[!duplicated(countData[,c("Symbol")]),]
-row.names(countData) <- countData$Symbol
-countData <- countData[,-c(1:6)]
+countData <- as.data.frame(count)
+countData <- countData[!duplicated(countData[,c("Gene_Symbol")]),]
+row.names(countData) <- countData$Gene_Symbol
+countData <- countData[,c(7:17)]
 
 #data exploration
 dim(countData)
 
-columns = c("CTL_1", "CTL_2", "CTL_3", "Mg_3")
-colnames(countData) = columns
+colnames(countData) <- c("MOGSP_2", "MOGSP_3", "MOG_3", "MOG_4", "MOG_5", "Ly49N_1", "Ly49P_1", "Ly49N_2", "Ly49P_2", "Ly49N_3", "Ly49P_3")
 
 hist(countData[,1], br=200, xlab="Number of Reads Counts per Feature", main="Histogram of Read Counts")
 
@@ -70,7 +70,7 @@ detectGroups <- function (x){  # x are col names
 groups = as.character ( detectGroups( colnames( countData ) ) )
 groups
 
-cell = c("CTL", "CTL", "CTL", "Mg")
+cell = c("MOGSP", "MOGSP", "MOG", "MOG", "MOG", "Ly49N", "Ly49P", "Ly49N", "Ly49P", "Ly49N", "Ly49P")
 
 colData = cbind(colnames(countData),cell)
 colData
@@ -182,8 +182,6 @@ x[x< cutoff] <- cutoff
 groups = detectGroups(colnames(x) )
 groups.colors = rainbow(length(unique(groups) ) )
 
-
 #pretty heat map
-pheatmap(x)
-
+pheatmap(x, fontsize_row = 3)
 
