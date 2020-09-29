@@ -171,6 +171,10 @@ countMatrix <- inner_join(countMatrix, xRNA6h_3, by = "GeneID")
 
 colnames(countMatrix) <- c("GeneID", "noRNA16h_1", "noRNA16h_2", "noRNA16h_3", "noRNA6h_1", "noRNA6h_2", "noRNA6h_3", "pUUC16h_1", "pUUC16h_2", "pUUC16h_3", "pUUC6h_1", "pUUC6h_2", "pUUC6h_3", "R84816h_1", "R84816h_2", "R84816h_3", "R8486h_1", "R8486h_2", "R8486h_3", "vehicle16h_1", "vehicle16h_2", "vehicle16h_3", "vehicle6h_1", "vehicle6h_2", "vehicle6h_3", "xRNA16h_1", "xRNA16h_2", "xRNA16h_3", "xRNA6h_1", "xRNA6h_2", "xRNA6h_3")
 
+#write csv for countMatrix
+
+write.csv(countMatrix, "/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata")
+
 #join annotationFile with countmatrix
 
 annotationSymbol <- inner_join(countMatrix, annotationFile, by = "GeneID")
@@ -181,5 +185,5 @@ combinedFile <- inner_join(annotationSymbol, foo, by = "GeneID")
 
 #reorder to get input file
 
-GeneIDremoved <- combinedFile[,2:18]
-InputDESeq <- GeneIDremoved[,c(17, 12:16, 2:11)]
+#GeneIDremoved <- combinedFile[,2:18]
+#InputDESeq <- GeneIDremoved[,c(17, 12:16, 2:11)]
