@@ -26,8 +26,7 @@ library(readxl)
 library(ComplexHeatmap)
 
 #load count matrix 
-
-count <- read.csv("~/Documents/DrKwan/Workshop/DESeq.csv")
+count <- read.csv("~/Documents/DrKwan/Workshop/DESeqwTrimmedData.csv")
 
 #create data frame 
 countData <- as.data.frame(count)
@@ -35,135 +34,102 @@ countData <- countData[!duplicated(countData[,c("Gene_Symbol")]),]
 row.names(countData) <- countData$Gene_Symbol
 countData <- countData[,c(7:17)]
 
-#data exploration
-dim(countData)
+#create column data
 
-colnames(countData) <- c("MOGSP_2", "MOGSP_3", "MOG_3", "MOG_4", "MOG_5", "Ly49N_1", "Ly49P_1", "Ly49N_2", "Ly49P_2", "Ly49N_3", "Ly49P_3")
+colData <- DataFrame(
+  cell = c("SPtetramerCD8TCell", "SPtetramerCD8TCell", "SPtetramerCD8TCell", "SPtetramerCD8TCell", "SPtetramerCD8TCell", "Ly49NCD8TCell", "Ly49PCD8TCell", "Ly49NCD8TCell", "Ly49PCD8TCell", "Ly49NCD8TCell", "Ly49PCD8TCell"),
+  treatment = c("MOGSP", "MOGSP", "MOG", "MOG", "MOG", "MOGSP", "MOGSP", "MOGSP", "MOGSP", "MOGSP", "MOGSP"),
+  row.names = colnames(countData)
+)
 
-hist(countData[,1], br=200, xlab="Number of Reads Counts per Feature", main="Histogram of Read Counts")
-
-logCountData = log2(1+countData)
-par(mfrow = c(1, 2), mar=c(8,4,4,1))  # two columns
-hist(logCountData[,1], main="Histogram of Log Read Counts", xlab="Log transformed counts")
-boxplot(logCountData,las=3, main="Boxplot of Log Read Counts")
-
-x <- logCountData
-myColors = rainbow(dim(x)[2])
-plot(density(x[,1]),col = myColors[1], lwd=2,
-     xlab="Expresson values", ylab="Density", main= "Distribution of transformed data",
-     ylim=c(0, max(density(x[,1])$y)+0.5) )
-
-for( i in 2:dim(x)[2] )
-  lines(density(x[,i]),col=myColors[i], lwd=2)
-legend("topright", cex=0.5,colnames(x), lty=rep(1,dim(x)[2]), col=myColors )	
-
-detectGroups <- function (x){  # x are col names
-  tem <- gsub("[0-9]*$","",x) # Remove all numbers from end
-  #tem = gsub("_Rep|_rep|_REP","",tem)
-  tem <- gsub("_$","",tem); # remove "_" from end
-  tem <- gsub("_Rep$","",tem); # remove "_Rep" from end
-  tem <- gsub("_rep$","",tem); # remove "_rep" from end
-  tem <- gsub("_REP$","",tem)  # remove "_REP" from end
-  return( tem )
-}
-
-groups = as.character ( detectGroups( colnames( countData ) ) )
-groups
-
-cell = c("MOGSP", "MOGSP", "MOG", "MOG", "MOG", "Ly49N", "Ly49P", "Ly49N", "Ly49P", "Ly49N", "Ly49P")
-
-colData = cbind(colnames(countData),cell)
 colData
 
-str(colData)
+#DESeq2
 
-dds = DESeqDataSetFromMatrix(countData=countData,
-                             colData=colData,
-                             design= ~ cell)   # note that the study design is changed.
-dds = DESeq(dds)  # main function
-nrow(dds)
+dds <- DESeqDataSetFromMatrix(countData=countData,
+                              colData=colData,
+                              design= ~ treatment + cell)   
 
-dds <- dds[ rowSums(counts(dds)) > 5, ]
-nrow(dds)
+dds$cell <- dropEmptyLevels(dds$cell)
+dds$treatment <- dropEmptyLevels(dds$treatment)
 
-rld <- rlog(dds, blind = FALSE)
+#remove genes with low counts 
 
-vsd <- vst(dds, blind = FALSE)
+keepCounts <- rowSums(counts(dds)) >= 250
+dds <- dds[keepCounts,]
+
+#change the levels of "cell" 
+
+levels(dds$cell)
+levels(dds$cell) <- sub("-.*", "", levels(dds$cell))
+levels(dds$cell)
+
+#DESeq2 
+#Interactions
+
+#If the comparisons of interest are, for example, the effect of a condition for different sets of samples, a simpler approach than adding interaction terms explicitly to the design formula is to perform the following steps:
+##combine the factors of interest into a single factor with all combinations of the original factors
+##change the design to include just this factor, e.g. ~ group
+
+dds$group <- factor(paste0(dds$treatment, dds$cell))
+design(dds) <- ~ group
+dds <- DESeq(dds)
+resultsNames(dds)
+
+res <- results(dds, contrast = c("group", "MOGSPLy49PCD8TCell", "MOGSPLy49NCD8TCell"))
+
+#p-values and adjusted p-values
+
+resOrdered <- res[order(res$pvalue),]
+summary(res)
+
+#Benjamini-Hochberg two tailed adjusted P <0.005 from Wald's test
+#Log2 Fold Change >0.75
+
+res005 <- results(dds, alpha=0.0025, lfcThreshold = 0.75)
+summary(res005)
+sum(res005$padj < 0.0025, na.rm=TRUE)
+
+
+#If the variable is continuous or an interaction term
+#then the results can be extract name is one of elements returned by `resultsNames(dds)`.
+
+#transform count data
+
+vsd <- vst(dds, blind=FALSE)
+rld <- rlog(dds, blind=FALSE)
+head(assay(vsd), 3)
+
+#Wald test individual steps
 
 dds <- estimateSizeFactors(dds)
+dds <- estimateDispersions(dds)
+dds <- nbinomWaldTest(dds)
 
-slog <- log2(counts(dds, normalized=TRUE)+1)
+#p-values and adjusted p-values
 
-par(mfrow = c(1, 3))  # 3 columns
-plot(slog[,1],slog[,2])
-plot(assay(rld)[,1],assay(rld)[,2])
-plot(assay(vsd)[,1],assay(vsd)[,2])
+resOrderedCellTreatment <- res[order(res$pvalue),]
+summary(resOrderedCellTreatment)
 
-par(mfrow = c(1, 3))  # 3 columns
-slog <- log2(counts(dds, normalized=TRUE)+1)
-plot(slog[,1],slog[,2])
-slog <- log2(counts(dds, normalized=TRUE)+4)
-plot(slog[,1],slog[,2], xlim=c(0,20))
-slog <- log2(counts(dds, normalized=TRUE)+20)
-plot(slog[,1],slog[,2], xlim=c(0,20))
+#more information on results columns
+
+mcols(resOrderedCellTreatment)$description
 
 df <- bind_rows(
-  as_data_frame(slog[,1:2]) %>%
-    mutate(transformation = "log2(x + 1)"),
   as_data_frame(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"),
   as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst"))
 
 colnames(df)[1:2] <- c("x", "y")  
 
-ggplot(df, aes(x = x, y = y)) + geom_hex(bins = 80) +
-  coord_fixed() + facet_grid( . ~ transformation)
-
-plotPCA(rld, intgroup = c("cell")) + theme(aspect.ratio=1)
-
-pca.object <- prcomp(t(assay(rld))) # PCA 
-pcaData = as.data.frame(pca.object$x[,1:2]); 
-pcaData = cbind(pcaData,detectGroups(colnames(assay(rld)) ))
-colnames(pcaData) = c("PC1", "PC2", "Type")
-percentVar=round(100*summary(pca.object)$importance[2,1:2],0)
-#plot
-p=ggplot(pcaData, aes(PC1, PC2, color=Type, shape = Type)) + geom_point(size=5) 
-p=p+xlab(paste0("PC1: ",percentVar[1],"% variance")) 
-p=p+ylab(paste0("PC2: ",percentVar[2],"% variance")) 
-p=p+ggtitle("Principal component analysis (PCA)")+coord_fixed(ratio=1.0)+ 
-  theme(plot.title = element_text(size = 16,hjust = 0.5)) + theme(aspect.ratio=1) +
-  theme(axis.text.x = element_text( size = 16),
-        axis.text.y = element_text( size = 16),
-        axis.title.x = element_text( size = 16),
-        axis.title.y = element_text( size = 16) ) +
-  theme(legend.text=element_text(size=16))
-print(p)
-
 dist2 <- function(x, ...)   # distance function = 1-PCC (Pearson's correlation coefficient)
   as.dist(1-cor(t(x), method="pearson"))
-
-fit = cmdscale( dist2(t(assay(rld))) , eig=T, k=2)
-mdsData <- as.data.frame(fit$points[,1:2]); 
-mdsData <- cbind(mdsData,detectGroups(colnames(assay(rld))) )
-colnames(mdsData) = c("x1", "x2", "Type")
-
-p<-ggplot(mdsData, aes(x1, x2, color=Type, shape = Type)) + geom_point(size=5) 
-p=p+xlab("Dimension 1") 
-p=p+ylab("Dimension 2") 
-p=p+ggtitle("Multidimensional scaling (MDS)")+ coord_fixed(ratio=1.)+ 
-  theme(plot.title = element_text(hjust = 0.5)) + theme(aspect.ratio=1) +
-  theme(axis.text.x = element_text( size = 15),
-        axis.text.y = element_text( size = 15),
-        axis.title.x = element_text( size = 15),
-        axis.title.y = element_text( size = 15) ) +
-  theme(legend.text=element_text(size=15))
-print(p)
 
 library(gplots)
 
 hclust2 <- function(x, method="average", ...)  # average linkage in hierarchical clustering
   hclust(x, method=method, ...)
 
-n=100 # number of top genes by standard deviation
+n=130 # number of top genes by standard deviation
 
 x = assay(rld)
 if(n>dim(x)[1]) n = dim(x)[1] # max	as data
@@ -179,9 +145,5 @@ x[x>cutoff] <- cutoff
 cutoff = median(unlist(x)) - 4*sd (unlist(x)) 
 x[x< cutoff] <- cutoff
 
-groups = detectGroups(colnames(x) )
-groups.colors = rainbow(length(unique(groups) ) )
-
 #pretty heat map
 pheatmap(x, fontsize_row = 3)
-
