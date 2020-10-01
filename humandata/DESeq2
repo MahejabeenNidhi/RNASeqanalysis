@@ -1,0 +1,123 @@
+#load libraries
+library(edgeR)
+library(limma)
+library(DESeq2)
+library(Biobase)
+library(EnhancedVolcano)
+library(RColorBrewer)
+library(pheatmap)
+library(tidyverse)
+library(genefilter)
+library(ggplot2)
+library(readr)
+library(dplyr)
+library(gplots)
+library(org.Hs.eg.db)
+library(ggrepel)
+library(gage)
+library(gageData)
+library(Select)
+
+#load count Matrix
+count <- read.csv("~/Documents/DrKwan/workshopwithdrchowdata/input.csv")
+
+#create data frame 
+countData <- as.data.frame(count)
+countData <- countData[!duplicated(countData[,c("Gene_Symbol")]),]
+row.names(countData) <- countData$Gene_Symbol
+countData <- countData[,c(7:36)]
+
+#create column data
+
+colData <- DataFrame(
+  treatment = c("noRNA", "noRNA", "noRNA", "noRNA", "noRNA", "noRNA", "pUUC", "pUUC", "pUUC", "pUUC", "pUUC", "pUUC", "R848", "R848", "R848", "R848", "R848", "R848", "vehicle", "vehicle", "vehicle", "vehicle", "vehicle", "vehicle", "xRNA", "xRNA", "xRNA", "xRNA", "xRNA", "xRNA"),
+  row.names = colnames(countData)
+)
+
+colData
+
+#DESeq2
+
+dds <- DESeqDataSetFromMatrix(countData=countData,
+                              colData=colData,
+                              design= ~ treatment)   
+
+#remove genes with low counts 
+
+keepCounts <- rowSums(counts(dds)) >= 75
+dds <- dds[keepCounts,]
+
+dds <- DESeq(dds)
+resultsNames(dds)
+
+res <- results(dds, contrast = c("treatment", "R848", "noRNA"))
+
+#p-values and adjusted p-values
+
+resOrdered <- res[order(res$pvalue),]
+summary(res)
+
+#Benjamini-Hochberg two tailed adjusted P <0.005 from Wald's test
+#Log2 Fold Change >0.75
+
+res005 <- results(dds, alpha=0.005, lfcThreshold = 2)
+summary(res005)
+sum(res005$padj < 0.005, na.rm=TRUE)
+
+
+#If the variable is continuous or an interaction term
+#then the results can be extract name is one of elements returned by `resultsNames(dds)`.
+
+#transform count data
+
+vsd <- vst(dds, blind=FALSE)
+rld <- rlog(dds, blind=FALSE)
+head(assay(vsd), 3)
+
+#Wald test individual steps
+
+dds <- estimateSizeFactors(dds)
+dds <- estimateDispersions(dds)
+dds <- nbinomWaldTest(dds)
+
+#p-values and adjusted p-values
+
+resOrderedCellTreatment <- res005[order(res$pvalue),]
+summary(resOrderedCellTreatment)
+
+#more information on results columns
+
+mcols(resOrderedCellTreatment)$description
+
+df <- bind_rows(
+  as_data_frame(assay(rld)[, 1:2]) %>% mutate(transformation = "rlog"),
+  as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst"))
+
+colnames(df)[1:2] <- c("x", "y")  
+
+dist2 <- function(x, ...)   # distance function = 1-PCC (Pearson's correlation coefficient)
+  as.dist(1-cor(t(x), method="pearson"))
+
+library(gplots)
+
+hclust2 <- function(x, method="average", ...)  # average linkage in hierarchical clustering
+  hclust(x, method=method, ...)
+
+n=100 # number of top genes by standard deviation
+
+x = assay(rld)
+if(n>dim(x)[1]) n = dim(x)[1] # max	as data
+
+x = x[order(apply(x,1,sd),decreasing=TRUE),]  # sort genes by standard deviation
+
+x = x[1:n,]   # only keep the n genes
+
+# this will cutoff very large values, which could skew the color 
+x=as.matrix(x[1:n,])-apply(x[1:n,],1,mean)
+cutoff = median(unlist(x)) + 4*sd (unlist(x)) 
+x[x>cutoff] <- cutoff
+cutoff = median(unlist(x)) - 4*sd (unlist(x)) 
+x[x< cutoff] <- cutoff
+
+#pretty heat map
+pheatmap(x, fontsize_row = 3)
