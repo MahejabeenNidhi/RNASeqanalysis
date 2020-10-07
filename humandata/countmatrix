@@ -50,10 +50,10 @@ annotationFile <- annotationFile[,!(names(annotationFile)%in%drop2)]
 library(biomaRt)
 ensembl <- useMart("ensembl")
 datasets <- listDatasets(ensembl)
-ensembl <- useDataset("mmusculus_gene_ensembl", mart = ensembl)
-mouse_gene_ids <- annotationFile[,6]
+ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl)
+gene_ids <- annotationFile[,6]
 foo <- getBM(attributes = c("ensembl_gene_id","external_gene_name"),
-             values = mouse_gene_ids,
+             values = gene_ids,
              mart = ensembl)
 colnames(foo) <- c("GeneID", "Gene_Symbol")
 
