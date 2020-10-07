@@ -1,0 +1,191 @@
+## extract log fold change for 6h xRNA vs 6h noRNA
+## extract log fold change for 16h xRNA vs 16h noRNA
+## extract log fold change for 6h pUUC vs 6h noRNA
+## extract log fold change for 16h pUUC vs 16h noRNA
+## extract log fold change for 6h R848 vs 6h vehicle
+## extract log fold change for 16h R848 vs 16h vehicle
+
+
+#load gene annotation file
+#note the species of the annotation file
+
+geneAnnotation <- read.delim("~/Documents/DrKwan/workshopwithdrchowdata/Galaxy61-[ftp___ftp.ebi.ac.uk_pub_databases_gencode_Gencode_human_release_35_gencode.v35.chr_patch_hapl_scaff.annotation.gtf.gz].gff", header = F, comment.char = "#")
+
+#name columns of the annotation file
+
+annotationColumns <- c("Chr", "Source", "Feature", "Start", "End", "Score", "Strand", "Frame", "Group")
+colnames(geneAnnotation) <- annotationColumns
+
+#filter for Feature "gene"
+
+filteredAnnotation <- geneAnnotation[geneAnnotation$Feature == "gene",]
+
+#drop columns Seqname Source Score Frame
+
+drop <- c("Source", "Score", "Frame")
+annotationFile <- filteredAnnotation[,!(names(filteredAnnotation)%in%drop)]
+
+#calculate gene length
+
+annotationFile <- within(annotationFile, GeneLength <- End-Start)
+
+#extract ensembl gene ID
+
+library(stringr)
+library(tidyverse)
+
+tbl <- tibble(temp = annotationFile$Group)
+tbl2 <- tbl %>%
+  mutate(temp2 = str_sub(temp, 8,-1))
+tbl2
+
+tbl3 <- tbl2 %>%
+  mutate(temp3 = str_sub(temp2, 2, 16))
+tbl3
+
+GeneID <- as.vector(tbl3$temp3)
+GeneID
+
+annotationFile <- cbind(annotationFile, GeneID)
+
+#drop Group Feature columns 
+
+drop2 <- c("Feature", "Group")
+annotationFile <- annotationFile[,!(names(annotationFile)%in%drop2)]
+
+#use biomaRt to convert ensembl gene ID to Gene Symbol
+
+library(biomaRt)
+ensembl <- useMart("ensembl")
+datasets <- listDatasets(ensembl)
+ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl)
+gene_ids <- annotationFile[,6]
+foo <- getBM(attributes = c("ensembl_gene_id","external_gene_name"),
+             values = gene_ids,
+             mart = ensembl)
+colnames(foo) <- c("GeneID", "Gene_Symbol")
+
+#reorder annotationFile
+
+annotationFile <- annotationFile[,c(6, 1, 2, 3, 4, 5)]
+
+
+#load GeneCount files
+
+noRNA16h_1 <- read.delim("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/Galaxy66-[1].tabular", header=FALSE)
+noRNA16h_2 <- read.delim("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/Galaxy70-[2].tabular", header=FALSE)
+noRNA16h_3 <- read.delim("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/Galaxy74-[3].tabular", header=FALSE)
+xRNA16h_1 <- read.delim("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/Galaxy162-[25].tabular", header=FALSE)
+xRNA16h_2 <- read.delim("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/Galaxy166-[26].tabular", header=FALSE)
+xRNA16h_3 <- read.delim("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/Galaxy170-[27].tabular", header=FALSE)
+
+#define function to clean the GeneCounts
+
+GeneCounts <- function(RawCount) {
+  Reads <- RawCount[,1:2]
+  Reads <- tail(Reads, -4)
+  Reads[,1] <- str_sub(Reads[,1], 1, 15)
+  colnames(Reads) <- c("GeneID", "Count")
+  return(Reads)
+}
+
+noRNA16h_1 <- GeneCounts(noRNA16h_1)
+noRNA16h_2 <- GeneCounts(noRNA16h_2)
+noRNA16h_3 <- GeneCounts(noRNA16h_3) 
+xRNA16h_1 <- GeneCounts(xRNA16h_1)
+xRNA16h_2 <- GeneCounts(xRNA16h_2)
+xRNA16h_3 <- GeneCounts(xRNA16h_3)
+
+#join all the datasets
+
+library(dplyr)
+countMatrix <- inner_join(noRNA16h_1, noRNA16h_2, by = "GeneID") 
+countMatrix <- inner_join(countMatrix, noRNA16h_3, by = "GeneID") 
+countMatrix <- inner_join(countMatrix, xRNA16h_1, by = "GeneID")
+countMatrix <- inner_join(countMatrix, xRNA16h_2, by = "GeneID")
+countMatrix <- inner_join(countMatrix, xRNA16h_3, by = "GeneID")
+
+colnames(countMatrix) <- c("GeneID", "noRNA16h_1", "noRNA16h_2", "noRNA16h_3", "xRNA16h_1", "xRNA16h_2", "xRNA16h_3")
+
+
+#join annotationFile with countmatrix
+
+annotationSymbol <- inner_join(countMatrix, annotationFile, by = "GeneID")
+
+#join annotationSymbol with foo
+
+combinedFile <- inner_join(annotationSymbol, foo, by = "GeneID")
+
+#reorder to get input file
+
+GeneIDremoved <- combinedFile[,2:13]
+InputDESeq <- GeneIDremoved[,c(12, 7:11, 1:6)]
+
+#write csv for countMatrix
+
+#write.csv(InputDESeq, "/Users/mahejabeennidhi/Documents/DrKwan/nornavsxrna.csv")
+
+#load libraries
+library(edgeR)
+library(limma)
+library(DESeq2)
+library(Biobase)
+library(EnhancedVolcano)
+library(RColorBrewer)
+library(pheatmap)
+library(tidyverse)
+library(genefilter)
+library(ggplot2)
+library(readr)
+library(dplyr)
+library(gplots)
+library(org.Hs.eg.db)
+library(ggrepel)
+library(gage)
+library(gageData)
+library(Select)
+
+#create data frame 
+countData <- as.data.frame(InputDESeq)
+countData <- countData[!duplicated(countData[,c("Gene_Symbol")]),]
+row.names(countData) <- countData$Gene_Symbol
+countData <- countData[,c(7:12)]
+
+#create column data
+
+colData <- DataFrame(
+  treatment = c("noRNA", "noRNA", "noRNA", "xRNA", "xRNA", "xRNA"),
+  row.names = colnames(countData)
+)
+
+colData
+
+#DESeq2
+
+dds <- DESeqDataSetFromMatrix(countData=countData,
+                              colData=colData,
+                              design= ~ treatment)   
+
+#remove genes with low counts 
+
+keepCounts <- rowSums(counts(dds)) >= 75
+dds <- dds[keepCounts,]
+
+dds <- DESeq(dds)
+resultsNames(dds)
+
+res <- results(dds, contrast = c("treatment", "xRNA", "noRNA"))
+
+#p-values and adjusted p-values
+
+resOrdered <- res[order(res$pvalue),]
+summary(res)
+
+#Benjamini-Hochberg two tailed adjusted P <0.005 from Wald's test
+#Log2 Fold Change >0.75
+
+res005 <- results(dds, alpha=0.005, lfcThreshold = 2)
+summary(res005)
+sum(res005$padj < 0.005, na.rm=TRUE)
+
+logFC16hxRNAvsnoRNA <- res005[,"log2FoldChange"]
