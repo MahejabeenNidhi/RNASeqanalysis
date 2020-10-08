@@ -1,8 +1,7 @@
 ## RNASeqanalysis
 
-## Task
-
-Create visualization, such as heatmap, to identify the genes that have been upregulated or downregulated. 
+Create visualization to identify the genes that have been upregulated or downregulated. 
+Gene Set Enrichment Analysis
 
 ## Dependency
 
