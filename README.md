@@ -1,7 +1,6 @@
 ## RNASeqanalysis
 
-Create visualization to identify the genes that have been upregulated or downregulated. 
-Gene Set Enrichment Analysis
+Create visualization to identify the genes that have been upregulated or downregulated and Gene Set Enrichment Analysis
 
 ## Dependency
 
