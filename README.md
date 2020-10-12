@@ -87,7 +87,7 @@ Wald test p-value: treatment MOGSP vs MOG
 As there are only 11 samples, all samples and their biological replicates could be included in the heatmap. 
 
 For the human example, there were 30 samples, so including the biological replicates would make the visualisation difficult to interpret. 
-Therefore, the matrix to feed into the heatmap is the foldchanges for 2 timepoints trimes 3 conditions. 
+Therefore, the matrix to feed into the heatmap is the foldchanges for 2 timepoints times 3 conditions. 
 extract log fold change for 
 * 6h xRNA vs 6h noRNA
 * 16h xRNA vs 16h noRNA
