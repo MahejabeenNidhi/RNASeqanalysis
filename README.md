@@ -89,12 +89,12 @@ As there are only 11 samples, all samples and their biological replicates could 
 For the human example, there were 30 samples, so including the biological replicates would make the visualisation difficult to interpret. 
 Therefore, the matrix to feed into the heatmap is the foldchanges for 2 timepoints trimes 3 conditions. 
 extract log fold change for 
-6h xRNA vs 6h noRNA
-16h xRNA vs 16h noRNA
-6h pUUC vs 6h noRNA
-16h pUUC vs 16h noRNA
-6h R848 vs 6h vehicle
-16h R848 vs 16h vehicle
+* 6h xRNA vs 6h noRNA
+* 16h xRNA vs 16h noRNA
+* 6h pUUC vs 6h noRNA
+* 16h pUUC vs 16h noRNA
+* 6h R848 vs 6h vehicle
+* 16h R848 vs 16h vehicle
 
 
 
