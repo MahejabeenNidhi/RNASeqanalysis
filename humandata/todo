@@ -1,12 +1,4 @@
-## from 6 DESeq2 results
+Use the rlog not the log Fold Change
+But how? 
 
-## extract log fold change for 6h xRNA vs 6h noRNA
-## extract log fold change for 16h xRNA vs 16h noRNA
-## extract log fold change for 6h pUUC vs 6h noRNA
-## extract log fold change for 16h pUUC vs 16h noRNA
-## extract log fold change for 6h R848 vs 6h vehicle
-## extract log fold change for 16h R848 vs 16h vehicle
 
-## join table 
-
-## pheatmap
