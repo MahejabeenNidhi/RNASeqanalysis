@@ -1,0 +1,15 @@
+library(dplyr)
+library(biomaRt)
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+library(stringr)
+
+ls("package:org.Hs.eg.db")
+
+columns(org.Hs.eg.db)
+
+k <- annotationFile[,6]
+
+annotationSymbol <- select(org.Hs.eg.db, keys = k, columns = c("SYMBOL"), keytype = "ENSEMBL")
+annotationSymbol <- distinct(annotationSymbol)
+annotationSymbol <- na.omit(annotationSymbol)
