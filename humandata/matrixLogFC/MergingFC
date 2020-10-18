@@ -13,5 +13,6 @@ joined <- full_join(joined, R8486h, by = "X")
 
 joined <- joined[, c(1, 2, 4, 6, 8, 10, 12)]
 joined <- na.omit(joined)
+colnames(joined) <- c("Symbol", "xRNA16h", "xRNA6h", "pUUC16h", "pUUC6h", "R84816h", "R8486h")
 
 write.csv(joined, "/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/joined.csv")
