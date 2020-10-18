@@ -1,0 +1,21 @@
+filtered1 <- read.csv("~/Documents/DrKwan/workshopwithdrchowdata/filtered1.csv")
+filtered2 <- read.csv("~/Documents/DrKwan/workshopwithdrchowdata/filtered2.csv")
+filtered3 <- read.csv("~/Documents/DrKwan/workshopwithdrchowdata/filtered3.csv")
+filtered4 <- read.csv("~/Documents/DrKwan/workshopwithdrchowdata/filtered4.csv")
+
+filteredjoined <- full_join(filtered1, filtered2, by = "GeneID")
+filteredjoined <- full_join(filteredjoined, filtered3, by = "GeneID")
+filteredjoined <- full_join(filteredjoined, filtered4, by = "GeneID")
+
+SelectedGenes <- as.data.frame(filteredjoined$GeneID)
+colnames(SelectedGenes) <- c("Symbol")
+
+finalMatrix <- inner_join(SelectedGenes, joined, by = "Symbol")
+
+write.csv(finalMatrix, "~/Documents/DrKwan/workshopwithdrchowdata/finalMatrix.csv")
+
+rownames(finalMatrix) <- finalMatrix$Symbol
+
+finalMatrix <- finalMatrix[,c(2,3,4,5,6,7)]
+
+pheatmap(finalMatrix, fontsize_row = 2)
