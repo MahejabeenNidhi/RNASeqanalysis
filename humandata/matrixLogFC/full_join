@@ -1,0 +1,17 @@
+xRNA16h <- read.csv("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/16hxRNA.csv")
+xRNA6h <- read.csv("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/6hxRNA.csv")
+pUUC16h <- read.csv("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/16hpUUC.csv")
+pUUC6h <- read.csv("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/6hpUUC.csv")
+R84816h <- read.csv("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/16hR848.csv")
+R8486h <- read.csv("/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/6hR848.csv")
+
+joined <- full_join(xRNA16h, xRNA6h, by = "X")
+joined <- full_join(joined, pUUC16h, by = "X")
+joined <- full_join(joined, pUUC6h, by = "X")
+joined <- full_join(joined, R84816h, by = "X")
+joined <- full_join(joined, R8486h, by = "X")
+
+joined <- joined[, c(1, 2, 4, 6, 8, 10, 12)]
+joined <- na.omit(joined)
+
+write.csv(joined, "/Users/mahejabeennidhi/Documents/DrKwan/workshopwithdrchowdata/joined.csv")
