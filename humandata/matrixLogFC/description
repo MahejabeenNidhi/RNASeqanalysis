@@ -1,0 +1,5 @@
+retrieve the fold change for all six DESeq2 in a single matrix
+
+retrieve the list of genes that have padj <0.05
+
+filter the first matrix to only keep the selected genes 
