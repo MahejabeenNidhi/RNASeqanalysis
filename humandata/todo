@@ -1,4 +1,6 @@
-Use the rlog not the log Fold Change
-But how? 
+No need for Ensembl to Symbol as it causes huge data loss
 
+Because heatmap uses GO categories instead
+
+Please do the dendogram 
 
