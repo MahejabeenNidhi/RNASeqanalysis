@@ -91,8 +91,8 @@ Therefore, the matrix to feed into the heatmap is the foldchanges for 2 timepoin
 extract log fold change for 
 * 6h xRNA vs 6h noRNA
 * 16h xRNA vs 16h noRNA
-* 6h pUUC vs 6h xRNA
-* 16h pUUC vs 16h xRNA
+* 6h pUUC vs 6h noRNA (or xRNA?) 
+* 16h pUUC vs 16h noRNA (or xRNA?)
 * 6h R848 vs 6h vehicle
 * 16h R848 vs 16h vehicle
 
