@@ -39,6 +39,15 @@ If faced with hardware limitations, run RNA STAR on Galaxy and select GeneCounts
 
 **HTSanalyzeR2**
 
+## Example Dataset
+
+Mitigating SOX2-potentiated Immune Escape of Head and Neck Squamous Cell Carcinoma with a STING-inducing Nanosatellite Vaccine
+Yee Sun Tan et. al.
+4 Samples
+
+**Expected heatmap**
+![nihms968654f1](https://user-images.githubusercontent.com/52653630/103473320-373abf80-4dd2-11eb-8219-230d322d6e6b.jpg)
+
 ## Notes
 
 **large sample size and multiple layers**
