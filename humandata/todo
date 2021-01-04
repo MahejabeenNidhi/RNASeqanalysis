@@ -1,6 +1,0 @@
-No need for Ensembl to Symbol as it causes huge data loss
-
-Because heatmap uses GO categories instead
-
-Please do the dendogram 
-
