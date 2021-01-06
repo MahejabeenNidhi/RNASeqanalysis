@@ -24,3 +24,6 @@ server <- function(input, output) {
 }
 
 shinyApp(ui = ui, server = server)
+
+
+## change to make it accept tabular files
